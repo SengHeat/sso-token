@@ -1,5 +1,6 @@
 {
   "name": "sengheat/sso-token",
+  "version": "1.0.0",
   "description": "Laravel SSO JWE token package — issue and verify secure tokens",
   "type": "library",
   "require": {
