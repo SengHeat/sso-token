@@ -4,15 +4,14 @@ namespace SengHeat\SsoToken\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use RuntimeException;
-use Throwable;
 use SengHeat\SsoToken\Services\TokenService;
+use Throwable;
 
 class VerifyToken
 {
     public function __construct(private TokenService $tokenService) {}
 
-    public function handle(Request $request, Closure $next): mixed
+    public function handle(Request $request, Closure $next)
     {
         $token = $request->bearerToken();
 
@@ -23,21 +22,18 @@ class VerifyToken
         try {
             $payload = $this->tokenService->verify($token);
             $request->merge(['token_payload' => $payload]);
-
             return $next($request);
-        } catch (RuntimeException $e) {
+
+        } catch (Throwable $e) {
             $response = ['error' => $e->getMessage()];
 
-            if (config('app.env') !== 'production') {
-                $response['debug'] = $e->getMessage();
-            }
-
-            return response()->json($response, 401);
-        } catch (Throwable $e) {
-            $response = ['error' => 'Token invalid'];
-
-            if (config('app.env') !== 'production') {
-                $response['debug'] = $e->getMessage();
+            // Show debug info outside production
+            if (!app()->isProduction()) {
+                $response['debug'] = [
+                    'message' => $e->getMessage(),
+                    'file'    => $e->getFile(),
+                    'line'    => $e->getLine(),
+                ];
             }
 
             return response()->json($response, 401);

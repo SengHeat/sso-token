@@ -13,23 +13,47 @@ class SsoTokenServiceProvider extends ServiceProvider
     {
         $this->mergeConfigFrom(__DIR__ . '/../config/sso.php', 'sso');
 
-        $this->app->singleton(TokenService::class, fn () => new TokenService());
+        $this->app->singleton(TokenService::class, function () {
+            return new TokenService(config('sso'));
+        });
     }
 
     public function boot(): void
     {
-        // Publish config
+        $this->registerPublishing();
+        $this->registerMiddleware();
+        $this->registerCommands();
+    }
+
+    private function registerPublishing(): void
+    {
+        if (!$this->app->runningInConsole()) {
+            return;
+        }
+
         $this->publishes([
             __DIR__ . '/../config/sso.php' => config_path('sso.php'),
         ], 'sso-config');
 
-        // Register middleware alias
-        $router = $this->app['router'];
-        $router->aliasMiddleware('sso.verify', VerifyToken::class);
+        $this->publishes([
+            __DIR__ . '/../stubs/.env.sso' => base_path('.env.sso.example'),
+        ], 'sso-env');
+    }
 
-        // Register artisan command
+    private function registerMiddleware(): void
+    {
+        $this->app['router']->aliasMiddleware('sso.verify', VerifyToken::class);
+    }
+
+    private function registerCommands(): void
+    {
         if ($this->app->runningInConsole()) {
             $this->commands([InstallCommand::class]);
         }
+    }
+
+    public function provides(): array
+    {
+        return [TokenService::class];
     }
 }
