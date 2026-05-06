@@ -19,10 +19,14 @@ use RuntimeException;
 
 class TokenService
 {
-    private static $signPrivateKey = null;
-    private static $signPublicKey  = null;
-    private static $encPublicKey   = null;
-    private static $encPrivateKey  = null;
+    private static array $keyCache = [];
+
+    private array $config;
+
+    public function __construct(array $config = [])
+    {
+        $this->config = $config ?: config('sso', []);
+    }
 
     private function algorithmManager(): AlgorithmManager
     {
@@ -33,76 +37,67 @@ class TokenService
         ]);
     }
 
-    private function getSignPrivateKey()
+    private function loadKey(string $path): mixed
     {
-        if (!static::$signPrivateKey) {
-            static::$signPrivateKey = JWKFactory::createFromKeyFile(
-                config('sso.sign_private'),
-                null,
-                []
-            );
+        if (isset(static::$keyCache[$path])) {
+            return static::$keyCache[$path];
         }
 
-        return static::$signPrivateKey;
+        if (!file_exists($path)) {
+            throw new RuntimeException("SSO key file not found: {$path}");
+        }
+
+        return static::$keyCache[$path] = JWKFactory::createFromKeyFile($path, null, []);
     }
 
-    private function getSignPublicKey()
+    private function getSignPrivateKey(): mixed
     {
-        if (!static::$signPublicKey) {
-            static::$signPublicKey = JWKFactory::createFromKeyFile(
-                config('sso.sign_public'),
-                null,
-                []
-            );
-        }
-
-        return static::$signPublicKey;
+        $this->requireMode('issue', 'sign_private');
+        return $this->loadKey($this->config['sign_private']);
     }
 
-    private function getEncPublicKey()
+    private function getSignPublicKey(): mixed
     {
-        if (!static::$encPublicKey) {
-            static::$encPublicKey = JWKFactory::createFromKeyFile(
-                config('sso.enc_public'),
-                null,
-                []
-            );
-        }
-
-        return static::$encPublicKey;
+        return $this->loadKey($this->config['sign_public']);
     }
 
-    private function getEncPrivateKey()
+    private function getEncPublicKey(): mixed
     {
-        if (!static::$encPrivateKey) {
-            static::$encPrivateKey = JWKFactory::createFromKeyFile(
-                config('sso.enc_private'),
-                null,
-                []
+        $this->requireMode('issue', 'enc_public');
+        return $this->loadKey($this->config['enc_public']);
+    }
+
+    private function getEncPrivateKey(): mixed
+    {
+        return $this->loadKey($this->config['enc_private']);
+    }
+
+    private function requireMode(string $requiredMode, string $keyName): void
+    {
+        if (($this->config['mode'] ?? 'verify') !== $requiredMode) {
+            throw new RuntimeException(
+                "Key [{$keyName}] is not available in [{$this->config['mode']}] mode."
             );
         }
-
-        return static::$encPrivateKey;
     }
 
     /**
      * Issue a signed + encrypted JWE token.
      *
      * @param  array<string, mixed>  $claims
-     *
-     * @throws RuntimeException when called in verify mode
+     * @throws RuntimeException
      */
     public function issue(array $claims): string
     {
-        if (config('sso.mode') === 'verify') {
-            throw new RuntimeException('Cannot issue tokens in verify mode');
+        if (($this->config['mode'] ?? 'verify') !== 'issue') {
+            throw new RuntimeException('Cannot issue tokens in verify mode.');
         }
 
         $payload = array_merge($claims, [
-            'iss' => config('sso.issuer'),
+            'iss' => $this->config['issuer'],
             'iat' => time(),
             'nbf' => time(),
-            'exp' => time() + (config('sso.ttl', 15) * 60),
+            'exp' => time() + (($this->config['ttl'] ?? 15) * 60),
             'jti' => bin2hex(random_bytes(16)),
         ]);
 
@@ -111,7 +106,7 @@ class TokenService
         // Step 1 — Sign with RS256
         $jws = (new JWSBuilder($algorithmManager))
             ->create()
-            ->withPayload(json_encode($payload))
+            ->withPayload(json_encode($payload, JSON_THROW_ON_ERROR))
             ->addSignature($this->getSignPrivateKey(), [
                 'alg' => 'RS256',
                 'typ' => 'JWT',
@@ -138,53 +133,70 @@ class TokenService
     }
 
     /**
-     * Verify a JWE token and return its payload.
+     * Verify and decrypt a JWE token — returns payload.
      *
      * @return array<string, mixed>
-     *
-     * @throws RuntimeException on any verification failure
+     * @throws RuntimeException
      */
     public function verify(string $token): array
     {
         $algorithmManager = $this->algorithmManager();
 
         // Step 1 — Decrypt JWE
-        $jweSerializerManager = new JWESerializerManager([new JWESerializer()]);
-        $jwe                  = $jweSerializerManager->unserialize($token);
-        $jweDecrypter         = new JWEDecrypter($algorithmManager);
+        $jwe     = (new JWESerializerManager([new JWESerializer()]))->unserialize($token);
+        $success = (new JWEDecrypter($algorithmManager))
+            ->decryptUsingKey($jwe, $this->getEncPrivateKey(), 0);
 
-        $success = $jweDecrypter->decryptUsingKey($jwe, $this->getEncPrivateKey(), 0);
         if (!$success) {
-            throw new RuntimeException('Token decryption failed');
+            throw new RuntimeException('Token decryption failed.');
         }
 
-        $innerJWT = $jwe->getPayload();
-
         // Step 2 — Verify JWS signature
-        $jws         = (new JWSSerializer())->unserialize($innerJWT);
-        $jwsVerifier = new JWSVerifier($algorithmManager);
+        $jws     = (new JWSSerializer())->unserialize($jwe->getPayload());
+        $isValid = (new JWSVerifier($algorithmManager))
+            ->verifyWithKey($jws, $this->getSignPublicKey(), 0);
 
-        if (!$jwsVerifier->verifyWithKey($jws, $this->getSignPublicKey(), 0)) {
-            throw new RuntimeException('Token signature invalid');
+        if (!$isValid) {
+            throw new RuntimeException('Token signature invalid.');
         }
 
         /** @var array<string, mixed> $payload */
-        $payload = json_decode($jws->getPayload(), true);
+        $payload = json_decode($jws->getPayload(), true, 512, JSON_THROW_ON_ERROR);
 
         // Step 3 — Validate claims
         if (($payload['exp'] ?? 0) < time()) {
-            throw new RuntimeException('Token expired');
+            throw new RuntimeException('Token expired.');
         }
 
-        if (($payload['iss'] ?? '') !== config('sso.issuer')) {
-            throw new RuntimeException('Token issuer invalid');
+        if (($payload['iss'] ?? '') !== ($this->config['issuer'] ?? '')) {
+            throw new RuntimeException('Token issuer invalid.');
         }
 
         // Step 4 — Check Redis blocklist
         if (Redis::exists("blocklist:{$payload['jti']}")) {
-            throw new RuntimeException('Token revoked');
+            throw new RuntimeException('Token has been revoked.');
         }
 
         return $payload;
+    }
+
+    /**
+     * Revoke a token by JTI until its expiry.
+     */
+    public function revoke(array $payload): void
+    {
+        $ttl = ($payload['exp'] ?? 0) - time();
+
+        if ($ttl > 0) {
+            Redis::setex("blocklist:{$payload['jti']}", $ttl, '1');
+        }
+    }
+
+    /**
+     * Clear the static key cache (useful for testing).
+     */
+    public static function flushKeyCache(): void
+    {
+        static::$keyCache = [];
     }
 }
