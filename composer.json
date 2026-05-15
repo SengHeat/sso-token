@@ -23,7 +23,10 @@
   "autoload": {
     "psr-4": {
       "SengHeat\\SsoToken\\": "src/"
-    }
+    },
+    "files": [
+      "src/helpers.php"
+    ]
   },
   "autoload-dev": {
     "psr-4": {
@@ -34,7 +37,10 @@
     "laravel": {
       "providers": [
         "SengHeat\\SsoToken\\SsoTokenServiceProvider"
-      ]
+      ],
+      "aliases": {
+        "SsoAuth": "SengHeat\\SsoToken\\Facades\\SsoAuth"
+      }
     }
   },
   "minimum-stability": "stable",

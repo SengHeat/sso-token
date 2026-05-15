@@ -4,12 +4,16 @@ namespace SengHeat\SsoToken\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use SengHeat\SsoToken\Services\SsoManager;
 use SengHeat\SsoToken\Services\TokenService;
 use Throwable;
 
 class VerifyToken
 {
-    public function __construct(private TokenService $tokenService) {}
+    public function __construct(
+        private TokenService $tokenService,
+        private SsoManager $ssoManager,
+    ) {}
 
     public function handle(Request $request, Closure $next)
     {
@@ -21,7 +25,13 @@ class VerifyToken
 
         try {
             $payload = $this->tokenService->verify($token);
+
+            // Keep backward-compat request attribute
             $request->merge(['token_payload' => $payload]);
+
+            // Populate the Passport-style helper
+            $this->ssoManager->setPayload($payload, $token);
+
             return $next($request);
 
         } catch (Throwable $e) {

@@ -5,6 +5,7 @@ namespace SengHeat\SsoToken;
 use Illuminate\Support\ServiceProvider;
 use SengHeat\SsoToken\Console\InstallCommand;
 use SengHeat\SsoToken\Middleware\VerifyToken;
+use SengHeat\SsoToken\Services\SsoManager;
 use SengHeat\SsoToken\Services\TokenService;
 
 class SsoTokenServiceProvider extends ServiceProvider
@@ -16,6 +17,9 @@ class SsoTokenServiceProvider extends ServiceProvider
         $this->app->singleton(TokenService::class, function () {
             return new TokenService(config('sso'));
         });
+
+        // Singleton so the middleware-populated state survives the request lifecycle
+        $this->app->singleton(SsoManager::class, fn () => new SsoManager());
     }
 
     public function boot(): void
@@ -54,6 +58,6 @@ class SsoTokenServiceProvider extends ServiceProvider
 
     public function provides(): array
     {
-        return [TokenService::class];
+        return [TokenService::class, SsoManager::class];
     }
 }
