@@ -1,6 +1,6 @@
 {
   "name": "sengheat/sso-token",
-  "version": "v1.0.1",
+  "version": "v1.0.2",
   "description": "SSO JWE token package for Laravel microservices",
   "type": "library",
   "license": "MIT",
