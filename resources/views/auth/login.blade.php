@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sign In — DRSB</title>
+    <title>Sign In — {{ config('sso.app_name') }}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -278,7 +278,7 @@
                         <line x1="12" y1="22" x2="12" y2="12"/>
                     </svg>
                 </div>
-                <h1 class="logo-title">DRSB Logistics</h1>
+                <h1 class="logo-title">{{ config('sso.app_name') }}</h1>
                 <p class="logo-sub">Sign in to your account</p>
             </div>
 

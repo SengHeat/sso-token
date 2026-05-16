@@ -4,6 +4,15 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Application Name
+    |--------------------------------------------------------------------------
+    | Displayed on the built-in login/register views.
+    | Set SSO_APP_NAME in your .env to override.
+    */
+    'app_name' => env('SSO_APP_NAME', env('APP_NAME', 'My App')),
+
+    /*
+    |--------------------------------------------------------------------------
     | SSO Providers
     |--------------------------------------------------------------------------
     | Configure each OAuth provider. Leave client_id empty to disable a provider.
