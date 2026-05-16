@@ -64,13 +64,15 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Token Cache TTL
+    | Token Cache
     |--------------------------------------------------------------------------
-    | Seconds to cache verified api_token lookups in Redis/cache.
-    | Set to 0 to disable caching (hits auth DB on every request).
-    | Recommended: 300 (5 min) for production with high traffic.
+    | SSO_CACHE_STORE  — which cache store to use (redis, memcached, file, etc.)
+    |                    null = use the app's default cache store.
+    | SSO_TOKEN_CACHE_TTL — seconds to cache verified api_token lookups.
+    |                       Set to 0 to disable. Recommended: 300 (5 min).
     */
-    'token_cache_ttl' => env('SSO_TOKEN_CACHE_TTL', 300),
+    'cache_store'     => env('SSO_CACHE_STORE', null),
+    'token_cache_ttl' => (int) env('SSO_TOKEN_CACHE_TTL', 300),
 
     /*
     |--------------------------------------------------------------------------

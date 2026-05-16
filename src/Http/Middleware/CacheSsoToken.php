@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Cache;
 
 class CacheSsoToken
 {
-    public function handle(Request $request, Closure $next, int $ttl = 300)
+    public function handle(Request $request, Closure $next)
     {
         $token = $request->bearerToken();
 
@@ -16,9 +16,17 @@ class CacheSsoToken
             return $next($request);
         }
 
+        $ttl = (int) config('sso.token_cache_ttl', 300);
+
+        if ($ttl <= 0) {
+            return $next($request);
+        }
+
+        $store    = config('sso.cache_store');
+        $cache    = $store ? Cache::store($store) : Cache::getFacadeRoot();
         $cacheKey = 'sso_token_' . hash('sha256', $token);
 
-        Cache::remember($cacheKey, $ttl, function () use ($token) {
+        $cache->remember($cacheKey, $ttl, function () use ($token) {
             $userModel = config('sso.user_model', \App\Models\User::class);
 
             return $userModel::where('api_token', hash('sha256', $token))->first();
