@@ -64,6 +64,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Allowed Redirect URLs (Portal Whitelist)
+    |--------------------------------------------------------------------------
+    | List of trusted portal URLs allowed to receive tokens after login.
+    | Prevents open redirect attacks — only these domains get the token.
+    |
+    | Example:
+    |   'allowed_redirects' => [
+    |       'https://portal-a.com/sso/callback',
+    |       'https://portal-b.com/sso/callback',
+    |   ],
+    */
+    'allowed_redirects' => array_filter(explode(',', env('SSO_ALLOWED_REDIRECTS', ''))),
+
+    /*
+    |--------------------------------------------------------------------------
     | Routes
     |--------------------------------------------------------------------------
     | Set false to register your own SSO routes manually.

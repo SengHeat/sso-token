@@ -34,6 +34,9 @@
         @if (config('sso.form_auth.enabled', false))
         <form method="POST" action="{{ route('sso.login') }}">
             @csrf
+            @if (!empty($redirectTo))
+                <input type="hidden" name="redirect_to" value="{{ $redirectTo }}">
+            @endif
             <label for="email">Email</label>
             <input id="email" type="email" name="email" value="{{ old('email') }}" required autofocus>
 

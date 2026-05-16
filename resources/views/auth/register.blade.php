@@ -29,6 +29,9 @@
 
         <form method="POST" action="{{ route('sso.register') }}">
             @csrf
+            @if (!empty($redirectTo))
+                <input type="hidden" name="redirect_to" value="{{ $redirectTo }}">
+            @endif
             <label for="name">Name</label>
             <input id="name" type="text" name="name" value="{{ old('name') }}" required autofocus>
 
