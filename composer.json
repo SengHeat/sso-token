@@ -1,7 +1,7 @@
 {
     "name": "sengheat/laravel-sso",
     "description": "A simple and flexible Single Sign-On (SSO) package for Laravel supporting Google, GitHub, Azure AD, and any OAuth2/OpenID Connect provider.",
-    "version": "2.0.2",
+    "version": "2.3.0",
     "type": "library",
     "keywords": ["laravel", "sso", "oauth2", "openid", "socialite", "authentication", "google", "github", "azure"],
     "license": "MIT",
