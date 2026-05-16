@@ -48,6 +48,22 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Form Auth (Issuer Mode)
+    |--------------------------------------------------------------------------
+    | Enable built-in login/register forms and API endpoints.
+    | Set SSO_FORM_AUTH=true on the service that issues tokens (auth-service).
+    | Other services (order-service, etc.) leave this false — they only verify.
+    |
+    | SSO_FORM_AUTH          — enable form login/register routes + views
+    | SSO_FORM_AUTH_REGISTER — allow new user registration (default: true)
+    */
+    'form_auth' => [
+        'enabled'        => env('SSO_FORM_AUTH', false),
+        'allow_register' => env('SSO_FORM_AUTH_REGISTER', true),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Routes
     |--------------------------------------------------------------------------
     | Set false to register your own SSO routes manually.

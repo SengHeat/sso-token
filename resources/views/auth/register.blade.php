@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sign In</title>
+    <title>Create Account</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: sans-serif; background: #f3f4f6; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
@@ -15,52 +15,38 @@
         .btn { width: 100%; padding: .7rem; background: #6366f1; color: #fff; border: none; border-radius: 6px; font-size: 1rem; cursor: pointer; }
         .btn:hover { background: #4f46e5; }
         .error { color: #dc2626; font-size: .85rem; margin-bottom: 1rem; }
-        .divider { display: flex; align-items: center; gap: .75rem; margin: 1.25rem 0; color: #9ca3af; font-size: .85rem; }
-        .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: #e5e7eb; }
-        .sso-btn { display: block; width: 100%; padding: .65rem; border: 1px solid #d1d5db; border-radius: 6px; text-align: center; text-decoration: none; color: #374151; font-size: .9rem; margin-bottom: .5rem; }
-        .sso-btn:hover { background: #f9fafb; }
         .link { text-align: center; margin-top: 1.25rem; font-size: .85rem; color: #6b7280; }
         .link a { color: #6366f1; text-decoration: none; }
     </style>
 </head>
 <body>
     <div class="card">
-        <h2>Sign In</h2>
+        <h2>Create Account</h2>
 
         @if ($errors->any())
             <div class="error">{{ $errors->first() }}</div>
         @endif
 
-        @if (config('sso.form_auth.enabled', false))
-        <form method="POST" action="{{ route('sso.login') }}">
+        <form method="POST" action="{{ route('sso.register') }}">
             @csrf
+            <label for="name">Name</label>
+            <input id="name" type="text" name="name" value="{{ old('name') }}" required autofocus>
+
             <label for="email">Email</label>
-            <input id="email" type="email" name="email" value="{{ old('email') }}" required autofocus>
+            <input id="email" type="email" name="email" value="{{ old('email') }}" required>
 
             <label for="password">Password</label>
             <input id="password" type="password" name="password" required>
 
-            <button type="submit" class="btn">Sign In</button>
+            <label for="password_confirmation">Confirm Password</label>
+            <input id="password_confirmation" type="password" name="password_confirmation" required>
+
+            <button type="submit" class="btn">Create Account</button>
         </form>
-        @endif
 
-        @php $providers = array_filter(config('sso.providers', []), fn($p) => !empty($p['client_id'])); @endphp
-
-        @if (config('sso.form_auth.enabled', false) && count($providers))
-            <div class="divider">or continue with</div>
-        @endif
-
-        @foreach ($providers as $provider => $cfg)
-            <a href="{{ route('sso.redirect', $provider) }}" class="sso-btn">
-                Sign in with {{ ucfirst($provider) }}
-            </a>
-        @endforeach
-
-        @if (config('sso.form_auth.allow_register', true) && config('sso.form_auth.enabled', false))
-            <div class="link">
-                Don't have an account? <a href="{{ route('sso.register.form') }}">Register</a>
-            </div>
-        @endif
+        <div class="link">
+            Already have an account? <a href="{{ route('sso.login.form') }}">Sign In</a>
+        </div>
     </div>
 </body>
 </html>

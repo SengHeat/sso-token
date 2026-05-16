@@ -38,6 +38,10 @@ class SSOServiceProvider extends ServiceProvider
         if (config('sso.register_routes', true)) {
             $this->loadRoutesFrom(__DIR__ . '/../routes/sso.php');
         }
+
+        if (config('sso.form_auth.enabled', false)) {
+            $this->loadRoutesFrom(__DIR__ . '/../routes/auth.php');
+        }
     }
 
     protected function registerViews(): void
