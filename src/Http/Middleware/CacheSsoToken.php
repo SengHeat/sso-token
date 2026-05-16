@@ -27,13 +27,21 @@ class CacheSsoToken
         $cache    = $store ? Cache::store($store) : Cache::getFacadeRoot();
         $cacheKey = 'sso_token_' . hash('sha256', $token);
 
-        $user = $cache->remember($cacheKey, $ttl, function () use ($token) {
-            $userModel = config('sso.user_model', \App\Models\User::class);
+        $userModel = config('sso.user_model', \App\Models\User::class);
 
-            return $userModel::where('api_token', hash('sha256', $token))->first();
+        // Cache only raw attributes (plain array) — never the Eloquent object.
+        // Serialising a model class causes __PHP_Incomplete_Class on retrieval
+        // when the consumer service has a different autoload context.
+        $attributes = $cache->remember($cacheKey, $ttl, function () use ($token, $userModel) {
+            $user = $userModel::where('api_token', hash('sha256', $token))->first();
+
+            return $user ? $user->getAttributes() : null;
         });
 
-        if ($user) {
+        if ($attributes) {
+            /** @var \Illuminate\Contracts\Auth\Authenticatable $user */
+            $user = (new $userModel)->forceFill($attributes);
+            $user->exists = true;
             Auth::guard($guard)->setUser($user);
         }
 
