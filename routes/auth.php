@@ -23,6 +23,7 @@ Route::middleware(['api', 'throttle:60,1'])
     ->group(function () {
         Route::post('/login',    [FormAuthController::class, 'login'])->name('login');
         Route::post('/register', [FormAuthController::class, 'register'])->name('register');
+        Route::post('/exchange', [FormAuthController::class, 'exchange'])->name('exchange');
         Route::post('/logout',   [FormAuthController::class, 'logout'])->middleware('auth:api')->name('logout');
         Route::get('/user',      [FormAuthController::class, 'user'])->middleware('auth:api')->name('user');
     });

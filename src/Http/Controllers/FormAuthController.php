@@ -57,7 +57,10 @@ class FormAuthController extends Controller
         $redirectTo = $this->validateRedirectTo($data['redirect_to'] ?? null);
 
         if ($redirectTo) {
-            return redirect($redirectTo . '?token=' . $token);
+            // One-time code — token never exposed in URL
+            $code = Str::random(40);
+            Cache::put('sso_code_' . $code, $token, 30); // expires in 30 seconds
+            return redirect($redirectTo . '?code=' . $code);
         }
 
         return redirect()->intended(config('sso.redirect_after_login', '/dashboard'));
@@ -78,7 +81,7 @@ class FormAuthController extends Controller
 
         $userModel = config('sso.user_model', \App\Models\User::class);
 
-        $user  = $userModel::create([
+        $user = $userModel::create([
             'name'     => $data['name'],
             'email'    => $data['email'],
             'password' => Hash::make($data['password']),
@@ -93,10 +96,35 @@ class FormAuthController extends Controller
         $redirectTo = $this->validateRedirectTo($data['redirect_to'] ?? null);
 
         if ($redirectTo) {
-            return redirect($redirectTo . '?token=' . $token);
+            $code = Str::random(40);
+            Cache::put('sso_code_' . $code, $token, 30);
+            return redirect($redirectTo . '?code=' . $code);
         }
 
         return redirect(config('sso.redirect_after_login', '/dashboard'));
+    }
+
+    public function exchange(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'code' => ['required', 'string'],
+        ]);
+
+        $cacheKey = 'sso_code_' . $data['code'];
+        $token    = Cache::pull($cacheKey); // pull = get + delete (one-time use)
+
+        if (! $token) {
+            return response()->json(['message' => 'Invalid or expired code.'], 422);
+        }
+
+        $userModel = config('sso.user_model', \App\Models\User::class);
+        $user      = $userModel::where('api_token', hash('sha256', $token))->first();
+
+        if (! $user) {
+            return response()->json(['message' => 'Invalid or expired code.'], 422);
+        }
+
+        return response()->json(['user' => $user, 'token' => $token]);
     }
 
     public function logout(Request $request): JsonResponse|RedirectResponse
