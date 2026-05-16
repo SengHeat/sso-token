@@ -4,11 +4,12 @@ namespace SengHeat\LaravelSso\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 
 class CacheSsoToken
 {
-    public function handle(Request $request, Closure $next)
+    public function handle(Request $request, Closure $next, string $guard = 'api')
     {
         $token = $request->bearerToken();
 
@@ -26,11 +27,15 @@ class CacheSsoToken
         $cache    = $store ? Cache::store($store) : Cache::getFacadeRoot();
         $cacheKey = 'sso_token_' . hash('sha256', $token);
 
-        $cache->remember($cacheKey, $ttl, function () use ($token) {
+        $user = $cache->remember($cacheKey, $ttl, function () use ($token) {
             $userModel = config('sso.user_model', \App\Models\User::class);
 
             return $userModel::where('api_token', hash('sha256', $token))->first();
         });
+
+        if ($user) {
+            Auth::guard($guard)->setUser($user);
+        }
 
         return $next($request);
     }
