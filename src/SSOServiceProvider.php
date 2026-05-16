@@ -6,6 +6,8 @@ use Illuminate\Support\ServiceProvider;
 use SengHeat\LaravelSso\Commands\InstallSSOCommand;
 use SengHeat\LaravelSso\Commands\PublishSSOCommand;
 use SengHeat\LaravelSso\Contracts\SSOManagerContract;
+use SengHeat\LaravelSso\Http\Middleware\CacheSsoToken;
+use SengHeat\LaravelSso\Http\Middleware\EnsureSSOUser;
 
 class SSOServiceProvider extends ServiceProvider
 {
@@ -28,6 +30,7 @@ class SSOServiceProvider extends ServiceProvider
         $this->registerPublishables();
         $this->registerCommands();
         $this->registerEventListeners();
+        $this->registerMiddlewareAliases();
     }
 
     protected function registerRoutes(): void
@@ -84,6 +87,13 @@ class SSOServiceProvider extends ServiceProvider
             InstallSSOCommand::class,
             PublishSSOCommand::class,
         ]);
+    }
+
+    protected function registerMiddlewareAliases(): void
+    {
+        $router = $this->app['router'];
+        $router->aliasMiddleware('sso.only',  EnsureSSOUser::class);
+        $router->aliasMiddleware('sso.cache', CacheSsoToken::class);
     }
 
     protected function registerEventListeners(): void

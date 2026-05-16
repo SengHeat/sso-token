@@ -2,6 +2,8 @@
 
 namespace SengHeat\LaravelSso\Traits;
 
+use Illuminate\Support\Str;
+
 trait HasSSOProfile
 {
     public function isSSOUser(): bool
@@ -17,6 +19,22 @@ trait HasSSOProfile
     public function ssoAvatar(string $default = ''): string
     {
         return $this->sso_avatar ?? $default;
+    }
+
+    public function generateApiToken(): string
+    {
+        $plainToken = Str::random(80);
+
+        $this->forceFill([
+            'api_token' => hash('sha256', $plainToken),
+        ])->save();
+
+        return $plainToken;
+    }
+
+    public function revokeApiToken(): void
+    {
+        $this->forceFill(['api_token' => null])->save();
     }
 
     public function scopeFromProvider($query, string $provider)

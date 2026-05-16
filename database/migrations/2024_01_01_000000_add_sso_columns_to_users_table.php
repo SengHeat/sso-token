@@ -21,6 +21,10 @@ return new class extends Migration
             if (! Schema::hasColumn('users', 'sso_avatar')) {
                 $table->string('sso_avatar')->nullable()->after('sso_token');
             }
+            if (! Schema::hasColumn('users', 'api_token')) {
+                $table->string('api_token', 80)->nullable()->unique()->after('sso_avatar');
+                $table->index('api_token');
+            }
 
             $table->string('password')->nullable()->change();
         });
@@ -29,7 +33,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn(['sso_provider', 'sso_provider_id', 'sso_token', 'sso_avatar']);
+            $table->dropColumn(['sso_provider', 'sso_provider_id', 'sso_token', 'sso_avatar', 'api_token']);
         });
     }
 };

@@ -64,6 +64,16 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Token Cache TTL
+    |--------------------------------------------------------------------------
+    | Seconds to cache verified api_token lookups in Redis/cache.
+    | Set to 0 to disable caching (hits auth DB on every request).
+    | Recommended: 300 (5 min) for production with high traffic.
+    */
+    'token_cache_ttl' => env('SSO_TOKEN_CACHE_TTL', 300),
+
+    /*
+    |--------------------------------------------------------------------------
     | Event Listeners
     |--------------------------------------------------------------------------
     | Map SSO events to your own listener classes.
